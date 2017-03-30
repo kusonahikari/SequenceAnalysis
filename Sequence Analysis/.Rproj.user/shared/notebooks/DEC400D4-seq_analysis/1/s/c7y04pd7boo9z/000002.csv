@@ -1,0 +1,4 @@
+"0","# Search in nucleotide data bank of NCBI"
+"0","EPM2A_search <- entrez_search(db = ""nucleotide"", term = ""EPM2A[Gene Name] AND homo sapiens[Organism]"")"
+"0","# Extract data summary from NCBI by searched ID"
+"0","EPM2A_sum <- entrez_summary(db =""nucleotide"", id=EPM2A_search$ids)"

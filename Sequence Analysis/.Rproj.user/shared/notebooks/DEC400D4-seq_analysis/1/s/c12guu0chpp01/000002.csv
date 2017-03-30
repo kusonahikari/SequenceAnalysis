@@ -1,0 +1,8 @@
+"0","# Exclude the outlier out of the data"
+"0","PME <- PME[-1]"
+"0","# Calculate standard deviation"
+"0","sd_PME <- sd(PME)"
+"0","sd_healthy <- sd(healthy)"
+"0","# Plot the result"
+"0","data <- c(log10(mean(PME)),log10(mean(healthy)))"
+"0","barplot(height = data, ylim = c(0, 5), beside =  T, names.arg = c(""PMEs patient"",""Healthy Group""), ylab = ""log10 of value"", col = c(""lightblue"",""lightpink""))"

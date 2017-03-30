@@ -1,0 +1,7 @@
+"0","# Create data frame"
+"0","healthy <- c(33508,33508,26489,42152,25442,24899)"
+"0","PME <- c(1152,3344,2811,3501,3653,3989)"
+"0","gene_expression <- data.frame(healthy, PME)"
+"0","gene_expression <- melt(gene_expression)"
+"0","# Boxplot to see the distribution"
+"0","boxplot(log10(value) ~ variable, data = gene_expression, xlab =  ""Group"", ylab = ""Log10(value)"")"

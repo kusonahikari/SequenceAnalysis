@@ -1,0 +1,297 @@
+---
+title: "Sequence Analysis"
+author: "Tung Trinh"
+output: 
+  word_document:
+    toc: TRUE
+---
+```{r echo = F, warning=FALSE, message= FALSE}
+# Clean up the R enviriment before conduct analysis
+rm(list = ls())
+# Load neccesary package 
+library(reshape2)
+library(rentrez)
+library(knitr)
+library(msa)
+library(Biostrings)
+library(Peptides)
+# library(seqinr)
+```
+#**Sequence Analysis**
+Progressive myoclonus epilepsies (PMEs) is a neural diseases that resulted from genetic disorders. Researching further about this disease is neccesary to develop gene edit therapies. Most of analysation below was run by R languega with some additional packages. The code script can be found in the Appedix section.
+##**Part One: Data Interpretation and Presentation**
+In order to identify the potential mutations that lead tp PMEs, microarry analysis was conducted. The sample was taken from two groups, healthy people and PMEs patients. The health group was used as a control in this study. The result shows that there is several gene of interest (GoI) have different gene expression between two groups with a statistically significant level (p < 0.05). These GoIs were then tested with quantitative Real-Time Polymerisation Chain Reaction (qRT-PCR). The qRT-PCR is analysised in section **(i)** below.
+
+###**(i) qRT-PCR analysis**
+The qRT-PCR resuls consists of two groups healthy people (healthy) and PMEs (PME) patients with five different GoIs, **EPM2A**,**CSTB**,**SCN1A**,**NHLRC1** and **KCNC1**. Each of group also includes of housekeeper (HK) value that used for data normalisation. 
+```{r echo = T, message=FALSE,warning=F}
+# Data input with ordered values.
+# These values is followed this order: Healthy, HK of Healthy, PME and HK of PME
+EPM2A <- c(19.87, 10.63, 21.54, 11.27)
+CSTB <- c(17.36, 10.21,21.92, 10.36)
+SCN1A <- c(20.68, 10.21, 20.47, 10.01)
+NHLRC1 <- c(18.79,10.08, 20.01, 10.58)
+KCNC1 <- c(20.34, 10.58, 20.44, 11.1)
+# Create data frame for more convinient calculation
+qPCR<- data.frame(EPM2A, CSTB, SCN1A, NHLRC1, KCNC1)
+print(qPCR)
+# Calculate the Delta of healthy group
+health_qPCR <- qPCR[1,] - qPCR[2,]
+health_qPCR
+# Calculate the Delta of PMEs group 
+patient_pPCR <- qPCR[3,] - qPCR[4,]
+patient_pPCR
+# The difference of level of gene expression between two groups healthy and PMEs
+2**-(patient_pPCR - health_qPCR)
+```
+
+The result shows that **SCN1A** doesn't have significant effects on neither down regulation or up regulation of gene expression ( the value approximately 1). Among these PME-related genes, **KCNC1** is the only mutation that up regulation the gene expression. The three remained genes shows the data that down regulates the expression. **EPM2A** and **NHLRC1** reduces slightly the expression of gene, 2 and 1.5 fold respectively. The most remarkable one is CSTB, which reduces 20 fold of gene expression, marking it as the most potential mutation that related to PME disease.   
+
+###**(ii) Literature reveiw**
+Due to large database of nucleotide data in NCBI bank, the combination of code-based search engine command and specific keywords help filtering, managing and process big data. The main purpose of this search is finding coding sequence of listed above gene which related to PMEs so we used **Gene Name** and **Organism** filters in nucleotide bank to archieve more specific result.
+
+```{r, echo = T, warning= F, message = F}
+# Search in nucleotide data bank of NCBI
+EPM2A_search <- entrez_search(db = "nucleotide", term = "EPM2A[Gene Name] AND homo sapiens[Organism]")
+# Extract data summary from NCBI by searched ID
+EPM2A_sum <- entrez_summary(db ="nucleotide", id=EPM2A_search$ids)
+```
+
+There are **`r length(EPM2A_search$ids)`** found results for **EPM2A** gene in human. We should look at the summary to choose apporiaete sequence.
+
+```{r, echo = T , warning=F, message= F}
+# Using head() to show the first five results only
+# Title
+head(extract_from_esummary(EPM2A_sum, "title"))
+# Sequence length
+head(extract_from_esummary(EPM2A_sum,"slen"))
+```
+
+By looking at the title and the sequence length, `r extract_from_esummary(EPM2A_sum, "title")[3]` and `r extract_from_esummary(EPM2A_sum, "title")[4]` are the most apporiate data for **EPM2A** gene. Their accession numbers are shown below.
+```{r, echo = T ,warning= F , message=F}
+# Accession number
+extract_from_esummary(EPM2A_sum,"caption")[c(3,4)]
+# Chormosomal Location
+extract_from_esummary(EPM2A_sum, c("subtype","subname"))[c(3,4)]
+```
+Both genes are on human chromosome 6 with sequence length of `r extract_from_esummary(EPM2A_sum,"slen")[1]` and `r extract_from_esummary(EPM2A_sum,"slen")[2]` bp, respectively. We repeat the same proceduce with other genes. Below is the summary table.
+
+```{r, echo = F, warning=F, message=F}
+#CSTB
+CSTB_search <- entrez_search(db = "nucleotide", term = "CSTB[Gene Name] AND homo sapiens[Organism]")
+CSTB_sum <- entrez_summary(db ="nucleotide", id=CSTB_search$ids)
+# Accession number
+# extract_from_esummary(CSTB_sum,"caption")[c(1,2)]
+# Sequence length
+# extract_from_esummary(CSTB_sum, "slen")[c(1,2)]
+# Chormosomal Location
+# extract_from_esummary(CSTB_sum, c("subtype","subname"))[c(1,2)]
+
+#SCN1A
+SCN1A_search <- entrez_search(db = "nucleotide", term = "SCN1A[Gene Name] AND homo sapiens[Organism]")
+SCN1A_sum <- entrez_summary(db ="nucleotide", id=SCN1A_search$ids)
+# Accession number
+# extract_from_esummary(SCN1A_sum,"caption")[1]
+# Sequence length
+# extract_from_esummary(SCN1A_sum, "slen")[1]
+# extract_from_esummary(SCN1A_sum, c("subtype", "subname"))[1]
+
+# NHLRC1
+NHLRC1_search <- entrez_search(db = "nucleotide", term = "NHLRC1[Gene Name] AND homo sapiens[Organism]")
+NHLRC1_sum <- entrez_summary(db ="nucleotide", id=NHLRC1_search$ids)
+#accession number
+# extract_from_esummary(NHLRC1_sum,"caption")[c(1,2)]
+#sequence length
+# extract_from_esummary(NHLRC1_sum, "slen")[c(1,2)]
+
+# KCNC1
+KCNC1_search <- entrez_search(db = "nucleotide", term = "KCNC1[Gene Name] AND homo sapiens[Organism]")
+KCNC1_sum <- entrez_summary(db ="nucleotide", id=KCNC1_search$ids)
+#accession number
+# extract_from_esummary(KCNC1_sum,"caption")
+#sequence length
+# extract_from_esummary(KCNC1_sum, "slen")
+
+# Create data for summary
+# Total results found
+hit_found <- c(length(EPM2A_search$ids), length(CSTB_search$ids),length(SCN1A_search$ids),length(NHLRC1_search$ids),length(KCNC1_search))
+# Full gene name
+f_gene_name <- c(extract_from_esummary(EPM2A_sum,"title")[3],extract_from_esummary(CSTB_sum,"title")[1],extract_from_esummary(SCN1A_sum,"title")[3], extract_from_esummary(NHLRC1_sum,"title")[1], extract_from_esummary(KCNC1_sum,"title")[2])
+# Accession number
+accession_number <- c(extract_from_esummary(EPM2A_sum,"caption")[3],extract_from_esummary(CSTB_sum,"caption")[1],extract_from_esummary(SCN1A_sum,"caption")[3], extract_from_esummary(NHLRC1_sum,"caption")[1], extract_from_esummary(KCNC1_sum,"caption")[2])
+# Sequence length
+seq_length <- c(extract_from_esummary(EPM2A_sum,"slen")[3],extract_from_esummary(CSTB_sum,"slen")[1],extract_from_esummary(SCN1A_sum,"slen")[3], extract_from_esummary(NHLRC1_sum,"slen")[1], extract_from_esummary(KCNC1_sum,"slen")[2])
+# Chromosomal Location
+chromo_loc <- c(6,21,2,6,11)
+dat <- data.frame(hit_found,f_gene_name,accession_number,seq_length,chromo_loc)
+rownames(dat) <- c("EPM2A","CSTB","SCN1A","NHLRC1","KCNC1")
+colnames(dat) <- c("Total results found","Full Gene Name","Accession Number","Sequence Length","Chromosomal Location")
+kable(dat)
+
+```
+
+###**(iii) Statistical Test**
+CSTB gene was used for further analysing. This section shows how significant level of PME patient with CSTB gene is, comparing with healthy group. Logarithm of 10 was applied for better visualization.  
+
+```{r, echo = T , warning= F , message=FALSE}
+# Create data frame
+healthy <- c(33508,33508,26489,42152,25442,24899)
+PME <- c(1152,3344,2811,3501,3653,3989)
+gene_expression <- data.frame(healthy, PME)
+gene_expression <- melt(gene_expression)
+# Boxplot to see the distribution
+boxplot(log10(value) ~ variable, data = gene_expression, xlab =  "Group", ylab = "Log10(value)")
+```
+As we can that in group PME, there is one outlier, which isn't in the same distance with these other observation. This affects the mean of of the variable as well as the standard deviation. This outlier will be excluded from the data.
+
+```{r, echo = T , warning=F,message=F}
+# Exclude the outlier out of the data
+PME <- PME[-1]
+# Calculate standard deviation
+sd_PME <- sd(PME, na.rm = T)
+sd_healthy <- sd(healthy)
+# Plot the result
+data <- c(log10(mean(PME, na.rm = T)),log10(mean(healthy)))
+barplot(height = data, ylim = c(0, 5), beside =  T, names.arg = c("PMEs patient","Healthy Group"), ylab = "log10 of value", col = c("lightblue","lightpink"))
+arrows(0.7,log10(mean(PME, na.rm = T)+sd_PME),0.7,log10(mean(PME, na.rm = T)),1,90,3 )
+arrows(1.9,log10(mean(healthy)+sd_healthy),1.9,log10(mean(healthy)),1,90,3 )
+```
+
+Student's t-test is the most simplest stastistical test which we can determine the significant level of difference between two groups of data. 
+```{r, echo = T, warning= F, message= F}
+# Two indepenent samples T-test
+# Compare the variance and mean of 2 sample populations are equal or not
+t.test(healthy,PME, alternative = "two.sided")
+```
+The p-value shows that these groups are greatly significanct difference, indicating that CSTB gene is responsible for PME disease.
+To check the result with other statistical test, we can perform linear model with analysis of variance (ANOVA). The result also show the significant difference two groups.
+```{r,echo = T, warning = F , message= F}
+anova(lm(value ~ variable, data = gene_expression))
+```
+
+##**Part Two**
+With the confirmation of relationship of CSTB gene with PMEs result, finding mutation of CSTB gene is essential for gene therapy. The sequence data consists of 4 pairs of sequence which belong to one healthy person and three PME patients, A, B and C. Each pairs of sequence has two allele.
+
+###**DNA Alignment**
+```{r, echo = F,eval = F, message=F, warning= F}
+# Create sequence fasta file 
+#Write fasta file
+#Healthy person with allele 1 and 2
+# health_a1 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+# health_a2 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+# Patient A with allele 1 and 2
+# pat_A1 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+# pat_A2 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+#Patient B with allele 1 and 2
+# pat_B1 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+# pat_B2 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+#Patient C with allele 1 and 2
+# pat_C1 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCACGTAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+# pat_C2 <- "CTGCAGCGCTGCGCCCCGCCCTCCCTCGTGCGCGGCCCGGACCCCGCCACCCTGCAGGATTGCCCCTACTCCGACTGCCCCTTCCCTATCGTCCCACCCTGCGCGCCCAACCCACCGGCGACACCCGGCCGCGCCCCCGCCCCGGTCCGTGTGACTCGGCGCCCGGAAAGACGATACCAGCCCCGGGAGGGGGGCGCTCCCTCCCGACACCAGCGCTGGGCGCGGAGACCCAGCCTGCGGCGAGTGGTGGCCAGGCTCCCCGCCCCGCGCCCCGCCCCGCGCCCCGCCCCGCGCGTCCCTTCTTGCGGGGCCACCGCGACCCCGCAGGGGACTCCGAAGCCAAAGTGCCTCCTCCCCGCCCCTTGGTTCCGCCCGCGCGTCACGTGACCCCAGCGCCTACTTGGGCTGAGGAGCCGCCGCGTCCCCTCGCCGAGTCCCCTCGCCAGATTCCCTCCGTCGCCGCCAAGATGATGTGCGGGGCGCCCTCCGCCGCAGCCGGCCACCGCCGAGACCCAGCACATCGCCGACCAG"
+# write.fasta(as.list(c(health_a1,health_a2,pat_A1,pat_A2,pat_B1,pat_B2,pat_C1,pat_C2)),as.list(c("Health_1","Health_2","Patient_A_1","Patient_A_2","Patient_B_1","Patient_B_2","Patient_C_1","Patient_C_2")), "data/sequence.fa", open = "w+")
+```
+DNA alignment analysis was conducted by using ClustalW method in R program language. The implement code and result are shown below.
+```{r,echo = T, warning= F , message=F}
+# Read data sequence
+# The data sequence file was created by R, the code can be found in supplement script
+sequence <- readDNAStringSet("data/sequence.fa")
+# DNA alignment with ClustalW method
+DNA_alignment <- msa(sequence, method = "ClustalW", type = "dna", order ="input")
+# Visualize the result
+# Please note that order to produce pdf type, you have to install Latex beforehand
+msaPrettyPrint(DNA_alignment, output = "pdf", showNames = "left", askForOverwrite = F)
+# The pdf file is then converted into image file and inserted into document
+```
+![DNA alignment](DNA_alignment.tiff)
+These eight sequences share a same identical part from position 1 to position 294. However, starting from position 295, a number of copies of *CCCCGCCCCGCG* are inserted in sequences of patient A and B. Specificly, allele 1 of patient A has 953 bp totally with 420 more bp,which mean 35 copies of *CCCCGCCCCGCG* added into the sequence. Similarly, allele 2 of pateint A and allele 1,2 of patient C has 40, 37 and 32 copies of *CCCCGCCCCGCG* sequences added. For pateint C, allele 1 has the same sequence length with healthy person's sequence but at position 495, the *C* nucleotide is changed into *T* nucleotide, this is a subtitiution mutation. However, we have to look at the protein translation and alignment to see wether this mutation affect structure of CSTB protein or not. In allele 2 of patient C, two nucleotides *C* and *A* are deleted at position 492 and 493 respectively, indication deletion mutation. This mutation can affect shift frame the protein translation. 
+
+###**Protein Translation**
+Open Reading Frame (ORF) should be taken into consideration. Three ORFs,starts from position 0, +1 and +2, are translated into amino acid. The translated amino acid sequences are then used for protein alignment.
+```{r ,echo = T, warning=FALSE, message=FALSE}
+#Prepare open reading frame from position 0 for protein translation
+sequence_ORF0 <- sequence
+#Prepare open reading frame from position +1 for protein translation
+sequence_ORF1 <- DNAStringSet(sequence, start = 2)
+#Prepare open reading frame +from position 2 for protein translation
+sequence_ORF2 <- DNAStringSet(sequence, start = 3)
+#Translation ORF0
+ORF0 <- Biostrings::translate(sequence_ORF0)
+#Translation ORF1
+ORF1 <- Biostrings::translate(sequence_ORF1)
+#Translation ORF2 
+ORF2 <- Biostrings::translate(sequence_ORF2)
+```
+
+###**Protein Alignment**
+ClustalW method is also applied for protein alignment in this section.
+```{r, echo = T, warning= F , message=F}
+# Protein alignment
+# Note: to be able to use msaPrettyPrint, you need to install laxtex platform in your computer
+# Protein alignment for Open reading frame 0
+aligned_ORF0 <- msa(ORF0, method = "ClustalW", type ="protein", order = "input")
+msaPrettyPrint(aligned_ORF0, output = "pdf", showNames = "left", askForOverwrite = F)
+# Protein alignment for Open reading frame 1
+aligned_ORF1 <- msa(ORF1, method = "ClustalW", order ="input", type = "protein")
+msaPrettyPrint(aligned_ORF1,output = "pdf", showNames = "left", showLogo = "none", askForOverwrite = F)
+# Protein alignment for Open reading frame 2
+aligned_ORF2 <- msa(ORF2, method = "ClustalW", type = "protein", order = "input")
+msaPrettyPrint(aligned_ORF2, output = "pdf", showNames = "left", askForOverwrite = F)
+# The pdf file is  then converted into image file and inserted into document
+```
+Open reading frame 0 (ORF0)
+![Protein open reading frame 0](aligned_ORF0.tiff)
+
+Open reading frame 1 (ORF1)
+![Protein open reading frame 1](aligned_ORF1.tiff)
+
+Open reading frame 2 (ORF2)
+![Protein open reading frame 2](aligned_ORF2.tiff)
+
+The above three grahps show the aligned results for three different open reading frames. By looking at the amino acid sequences, Open Reading Frame 2 (ORF2) is the most apporiate frame. ORF0 is translated, resulting two stop codons at position 127 and 155. ORF1 also two stop codon at position 51 and 134. By having stop codon in the middle of coding sequence, these two ORF are not suitable, apporiate. 
+
+To investigate the impact of nucleotide mutation to protein properties, we look at ORF2. As discussed above, patient A and B have insertion mutation, adding multiple copies of *PAPR* amino acid. This leads to the changing of physical and chemical properties of protein. 
+```{r, echo = T , warning= F , message=F}
+# Amino acid composition for healthy person, patienct A and B
+aaComp(ORF2[1:6])
+```
+The amino acid composition of CSTB protein is changed in pateint A and B. The insertion mutation increases the number of nonpolar, basic amino acid. The molecular weight is also affected as well by the mutated proteins are nearly twofold heavier then healthy protein. The aliphatic index shows the thermal stability of protein, the result shows that insertion mutation decrease the thermostability of protein. The boman index indicates potential protein interaction (protein - protein or protein - membrane), if a protein has index value higher than 2.48, it has high binding poteintial. Both patient A and B has boman index higher the 2.48 while the healthy's sequence is only at 1.98, indicating the possibility link between the binding of mutated CSTB protein with PMEs syndorms. 
+```{r, echo=T, message=F,warning=F}
+# Molecular weight for healthy person, patienct A and B
+mw(ORF2[1:6])
+# Aliphatic index of protein for healthy person, patienct A and B
+aIndex(ORF2[1:6])
+# Boman index (potential protein interation) for health person, patienct A and B
+boman(ORF2[1:6])
+```
+Moving on to patient C, the subsitiution mutation in allele 1 leads to the changing of amino acid position 164 into stop codon Q164X, shorten the amino acid sequence down. Consequencetly, the premature nonsense mutation makes non fully functionable protein. In allele 2, the last 14 amnino acids in the sequence are modified completely, resulting frame shifting error in the end of the sequence. However, the protein properties of CSTB protein of patient C don't change significantly.
+```{r,echo =T ,message=F,warning=F}
+# Amino acid composition for healthy person and patient C
+aaComp(ORF2[c(1,2,7,8)])
+# Molecular weight for healthy person and patient C
+mw(ORF2[c(1,2,7,8)])
+# Aliphatic index of protein for healthy person and pateint C
+aIndex(ORF2[c(1,2,7,8)])
+# Boman index (potential protein interation) for health person and patient C
+boman(ORF2[c(1,2,7,8)])
+```
+
+##**Part Three: Experimental design**
+
+Protein expression is an essential step to determine protein's activity as well as its properties. In addition, recombinant protein can be applied for drug development research, findind potential inhibition mechanism as well as determind the suitable dosage for administration. In this section, cloning strategy for *CSTB* gene's protein expression is proposed. 
+
+###**Design The Contrust**
+
+**Sequence Template Selection**
+
+Based on the search of *CSTB* gene in part one, the sequence id 49457291 (Accession number: CR542148.1) from *"Homo sapiens full open reading frame cDNA clone RZPDo834F0723D for gene CSTB, cystatin B (stefin B); complete cds, without stopcodon"* is selected [(link to NCBI nucleotide bank)](https://www.ncbi.nlm.nih.gov/nuccore/CR542148.1). This sequence is selected because it only contains coding sequence (CDS), suitable sequence length for efficient PCR product (294 bp) **REF*••**. The complete sequence can be found in Appendix section.
+
+**Target vector**
+
+Cloning gene of interest into a bacterial vector is a common method to overexpress *CSTB* protein. pET15b is chosen to express CSTB protein due to its nonviral characteristic, high expression level and ampicilin resistance (AmpR) region within the vector. 
+
+**Usable retristion enzymes**
+
+The CSTB CDS is analyzed to see which restriction enzymes can be applicable. Double digestion shows its effective towards cloning effectiveness, avoid misligation **REF**. Two applicable enzymes NdeI and BamHI are selection for restriction digest. Remarkably, NdeI has ATG start codon nucleotide digest site so the forward primer doesn't have to contain *ATG* start codon. 
+**PCR Primer Designing**
+
+The set of PCR primers is designed based on the coding sequence of *CSTB* gene. Due to the use of restriction digestion, an extenstion part is need for higher enzyme binding affinity and adjust the melting temperature of these two sequence. This primer can be also used to detect the successfull ligated vetor so the most ideal extension part is from vector. A Hig Tag fusion region is also require to purify the protein as well as to attach flourescent antibody to measure/quantify the amount of succesful overexpressed protein. In this pET15b vector, HIS-TAG region has already presented so we don't have to add HIS-TAG region into the primers.
