@@ -20,7 +20,7 @@ library(seqinr)
 ```
 
 #**Sequence Analysis**
-Progressive myoclonus epilepsies (PMEs) is a neural diseases that resulted from genetic disorders. Researching further about this disease is neccesary to develop gene edit therapies. Most of analysation below was run by R languega with some additional packages. The code script can be found in the Appedix section.
+Progressive myoclonus epilepsies (PMEs) is a neural diseases that resulted from genetic disorders. Researching further about this disease is neccesary to develop gene edit therapies. Most of analysation below was run by R languega with some additional packages.
 
 ###**qRT-PCR analysis**
 The qRT-PCR resuls consists of two groups healthy people (healthy) and PMEs (PME) patients with five different GoIs, **EPM2A**,**CSTB**,**SCN1A**,**NHLRC1** and **KCNC1**. Each of group also includes of housekeeper (HK) value that used for data normalisation. 
